@@ -2,10 +2,10 @@
 const { chromium } = require("playwright");
 const createCsvWriter = require("csv-writer").createObjectCsvWriter;
 
-async function saveHackerNewsArticles() {
+async function saveHackerNewsArticles(numArticles = 10) {
   try {
     // launch browser
-    const browser = await chromium.launch({ headless: true });
+    const browser = await chromium.launch({ headless: false });
     const context = await browser.newContext();
     const page = await context.newPage();
 
@@ -16,8 +16,8 @@ async function saveHackerNewsArticles() {
     // Locate all elements by 'titleline' had to be specific
     const articleLocators = page.locator("span.titleline");
 
-    // Get first 10 article titles and links
-    for (let i = 0; i < 10; i++) {
+    // Get specified number of articles and links, default is 10
+    for (let i = 0; i < numArticles; i++) {
       const linkElement = articleLocators.nth(i).getByRole("link").first();
       const title = await linkElement.innerText();
       const link = await linkElement.getAttribute("href");
