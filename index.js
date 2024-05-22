@@ -13,15 +13,39 @@ async function saveHackerNewsArticles(numArticles = 10) {
     await page.goto("https://news.ycombinator.com");
 
     const articles = [];
-    // Locate all elements by 'titleline' had to be specific
-    const articleLocators = page.locator("span.titleline");
+    let collectedArticles = 0;
 
-    // Get specified number of articles and links, default is 10
-    for (let i = 0; i < numArticles; i++) {
-      const linkElement = articleLocators.nth(i).getByRole("link").first();
-      const title = await linkElement.innerText();
-      const link = await linkElement.getAttribute("href");
-      articles.push({ title, link });
+    while (collectedArticles < numArticles) {
+      // locate all elements by 'titleline', had to be specific
+      const articleLocators = page.locator("span.titleline");
+      const articlesOnPage = await articleLocators.count();
+
+      // determine number of articles to fetch on this page
+      const articlesToFetch = Math.min(
+        numArticles - collectedArticles,
+        articlesOnPage
+      );
+
+      // get specified number of articles, default is 10
+      for (let i = 0; i < articlesToFetch; i++) {
+        const linkElement = articleLocators.nth(i).getByRole("link").first();
+        const title = await linkElement.innerText();
+        const link = await linkElement.getAttribute("href");
+        articles.push({ title, link });
+        collectedArticles++;
+      }
+
+      // check if we need more articles, navigate to next page if we do
+      if (collectedArticles < numArticles) {
+        const moreLink = page.getByRole("link", { name: "More", exact: true });
+        const moreLinkExists = await moreLink.isVisible();
+
+        if (moreLinkExists) {
+          await moreLink.click();
+        } else {
+          break;
+        }
+      }
     }
 
     await browser.close();
@@ -33,7 +57,7 @@ async function saveHackerNewsArticles(numArticles = 10) {
 
 async function writeToCsv(data) {
   try {
-    // Setup format for CSV
+    // setup format for CSV
     const csvWriter = createCsvWriter({
       path: "./articles.csv",
       header: [
